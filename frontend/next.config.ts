@@ -1,6 +1,4 @@
 import type { NextConfig } from "next";
-import path from "node:path";
-
 const nextConfig: NextConfig = {
   async rewrites() {
     const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
@@ -23,7 +21,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  outputFileTracingRoot: path.resolve(__dirname, '../../'),
   typescript: {
     ignoreBuildErrors: true,
   },
