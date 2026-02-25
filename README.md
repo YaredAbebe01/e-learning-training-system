@@ -35,10 +35,6 @@ From the frontend folder:
 
 Frontend will start at http://localhost:3000
 
-## Default Admin (Local)
-On backend start, the app ensures this admin exists:
-- Email: yaredoabebe07@gmail.com
-- Password: 12345678
 
 ## Notes
 - Image uploads require a logged-in instructor.
