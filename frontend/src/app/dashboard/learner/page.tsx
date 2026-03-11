@@ -1,5 +1,5 @@
 import { apiFetch, requireRole } from "@/lib/auth-helpers";
-import { BookOpen, GraduationCap, Award, Clock } from "lucide-react";
+import { BookOpen, GraduationCap, Award, Clock, Coins } from "lucide-react";
 import Link from "next/link";
 
 export default async function LearnerDashboard() {
@@ -12,6 +12,7 @@ export default async function LearnerDashboard() {
   const enrollments = payload.enrollments || [];
   const certificates = payload.certificates || [];
   const lessonProgress = payload.lessonProgress || [];
+  const points = payload.points || { total: 0, recent: [] };
 
   const activeEnrollments = enrollments?.filter(e => !e.completed_at) ?? [];
   const completedEnrollments = enrollments?.filter(e => e.completed_at) ?? [];
@@ -25,12 +26,13 @@ export default async function LearnerDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         {[
           { label: "Enrolled Courses", value: enrollments?.length ?? 0, icon: <BookOpen className="w-5 h-5" />, color: "bg-blue-600", link: "/dashboard/learner/my-learning" },
           { label: "In Progress", value: activeEnrollments.length, icon: <Clock className="w-5 h-5" />, color: "bg-orange-500", link: "/dashboard/learner/my-learning" },
           { label: "Completed", value: completedEnrollments.length, icon: <GraduationCap className="w-5 h-5" />, color: "bg-green-600", link: "/dashboard/learner/my-learning" },
           { label: "Certificates", value: certificates?.length ?? 0, icon: <Award className="w-5 h-5" />, color: "bg-yellow-500", link: "/dashboard/learner/certificates" },
+          { label: "My Points", value: points.total ?? 0, icon: <Coins className="w-5 h-5" />, color: "bg-violet-600", link: "/dashboard/learner" },
         ].map(s => (
           <Link key={s.label} href={s.link} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
@@ -101,6 +103,30 @@ export default async function LearnerDashboard() {
                 <p className="text-xs text-gray-400">Complete a course to earn certificates</p>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 lg:col-span-3">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="font-semibold text-gray-900">Recent Point Activity</h2>
+            <span className="text-sm font-medium text-violet-600">Total: {points.total ?? 0}</span>
+          </div>
+          <div className="space-y-3">
+            {(points.recent || []).map((entry: any) => (
+              <div key={entry.id} className="flex items-center justify-between gap-4 rounded-lg border border-gray-100 px-4 py-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-900">{entry.note || "Point update"}</p>
+                  <p className="text-xs text-gray-500">
+                    {entry.course?.title ? `${entry.course.title} • ` : ""}
+                    {new Date(entry.created_at).toLocaleString()}
+                  </p>
+                </div>
+                <span className={`text-sm font-semibold ${entry.points >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  {entry.points >= 0 ? `+${entry.points}` : entry.points}
+                </span>
+              </div>
+            ))}
+            {!points.recent?.length && <p className="text-sm text-gray-400 text-center py-6">No points yet. Pass milestones and score 100% on lesson tests to earn points.</p>}
           </div>
         </div>
       </div>

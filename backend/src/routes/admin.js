@@ -1,7 +1,26 @@
 const express = require("express");
 const { authMiddleware } = require("../auth");
 const { connectToDatabase } = require("../db");
-const { Certificate, Course, Enrollment, Lesson, LessonProgress, Module, Profile, Quiz, QuizAttempt, QuizQuestion } = require("../models");
+const {
+  Certificate,
+  Course,
+  Enrollment,
+  Lesson,
+  LessonProgress,
+  Module,
+  Profile,
+  Quiz,
+  QuizAttempt,
+  QuizQuestion,
+  LessonTest,
+  LessonTestAttempt,
+  LessonTestQuestion,
+  LessonTestSubmission,
+  Milestone,
+  MilestoneAttempt,
+  MilestoneQuestion,
+  MilestoneSubmission,
+} = require("../models");
 
 const router = express.Router();
 
@@ -162,10 +181,22 @@ router.delete("/courses", authMiddleware("admin"), async (req, res) => {
   await connectToDatabase();
   const quizzes = await Quiz.find({ course_id: id }, "_id").lean();
   const quizIds = quizzes.map((q) => q._id);
+  const lessonTests = await LessonTest.find({ course_id: id }, "_id").lean();
+  const lessonTestIds = lessonTests.map((t) => t._id);
+  const milestones = await Milestone.find({ course_id: id }, "_id").lean();
+  const milestoneIds = milestones.map((m) => m._id);
 
   await Promise.all([
     Lesson.deleteMany({ course_id: id }),
     LessonProgress.deleteMany({ course_id: id }),
+    LessonTestAttempt.deleteMany({ lesson_test_id: { $in: lessonTestIds } }),
+    LessonTestQuestion.deleteMany({ lesson_test_id: { $in: lessonTestIds } }),
+    LessonTestSubmission.deleteMany({ lesson_test_id: { $in: lessonTestIds } }),
+    LessonTest.deleteMany({ course_id: id }),
+    MilestoneAttempt.deleteMany({ milestone_id: { $in: milestoneIds } }),
+    MilestoneQuestion.deleteMany({ milestone_id: { $in: milestoneIds } }),
+    MilestoneSubmission.deleteMany({ milestone_id: { $in: milestoneIds } }),
+    Milestone.deleteMany({ course_id: id }),
     Module.deleteMany({ course_id: id }),
     Enrollment.deleteMany({ course_id: id }),
     Certificate.deleteMany({ course_id: id }),

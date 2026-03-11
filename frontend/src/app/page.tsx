@@ -1,4 +1,5 @@
 import Link from "next/link";
+import BrandLogo from "@/components/BrandLogo";
 import { BookOpen, Users, Award, BarChart3, CheckCircle, GraduationCap, Shield, Zap } from "lucide-react";
 
 export default function HomePage() {
@@ -8,9 +9,7 @@ export default function HomePage() {
       <nav className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="bg-blue-600 rounded-xl p-1.5">
-              <BookOpen className="w-5 h-5 text-white" />
-            </div>
+            <BrandLogo size={36} priority className="h-9 w-9 object-contain" />
             <span className="text-xl font-bold text-gray-900">LearnHub</span>
           </div>
           <div className="flex items-center gap-3">
@@ -130,7 +129,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8 px-4 text-center">
         <div className="flex items-center justify-center gap-2 mb-2">
-          <BookOpen className="w-5 h-5 text-blue-400" />
+          <BrandLogo size={26} className="h-6 w-6 object-contain" />
           <span className="font-bold text-white">LearnHub</span>
         </div>
         <p className="text-sm">E-Learning & Corporate Training Platform</p>

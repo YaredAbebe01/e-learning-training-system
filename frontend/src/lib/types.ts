@@ -6,6 +6,7 @@ export interface Profile {
   email: string;
   role: UserRole;
   avatar_url: string | null;
+  bio: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -19,6 +20,7 @@ export interface Course {
   instructor_id: string | null;
   category: string | null;
   level: "beginner" | "intermediate" | "advanced";
+  credit_hours: number | null;
   is_published: boolean;
   created_at: string;
   updated_at: string;

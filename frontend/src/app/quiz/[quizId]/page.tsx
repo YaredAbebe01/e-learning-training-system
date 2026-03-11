@@ -18,6 +18,9 @@ export default function QuizPage({ params }: PageProps) {
   const [result, setResult] = useState<any>(null);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [attemptId, setAttemptId] = useState<string>("");
+  const [startError, setStartError] = useState<string | null>(null);
+  const [latestAttempt, setLatestAttempt] = useState<any>(null);
+  const [resultAvailable, setResultAvailable] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => { params.then(p => setQuizId(p.quizId)); }, [params]);
@@ -30,15 +33,22 @@ export default function QuizPage({ params }: PageProps) {
       const payload = await response.json();
       setQuiz(payload.quiz);
       setQuestions(payload.questions || []);
+      setLatestAttempt(payload.latest_attempt || null);
+      setResultAvailable(payload.result_available !== false);
       setLoading(false);
     };
     load();
   }, [quizId]);
 
   const startQuiz = async () => {
+    setStartError(null);
     const response = await fetch(`/api/quizzes/${quizId}/attempt`, { method: "POST" });
     const payload = await response.json().catch(() => null);
-    if (response.ok && payload?.id) setAttemptId(payload.id);
+    if (!response.ok) {
+      setStartError(payload?.error || "Unable to start quiz.");
+      return;
+    }
+    if (payload?.id) setAttemptId(payload.id);
     setPhase("taking");
     if (quiz.time_limit_minutes) {
       setTimeLeft(quiz.time_limit_minutes * 60);
@@ -64,40 +74,24 @@ export default function QuizPage({ params }: PageProps) {
   const submitQuiz = async () => {
     if (timerRef.current) clearInterval(timerRef.current);
 
-    let earned = 0;
-    let total = 0;
-    const gradedAnswers: Record<string, { answer: string; correct: boolean; points: number }> = {};
-
-    questions.forEach(q => {
-      total += q.points;
-      const userAnswer = answers[q.id] || "";
-      let correct = false;
-      if (q.question_type === "short_answer") {
-        correct = userAnswer.toLowerCase().trim() === (q.correct_answer || "").toLowerCase().trim();
-      } else {
-        correct = userAnswer === q.correct_answer;
-      }
-      if (correct) earned += q.points;
-      gradedAnswers[q.id] = { answer: userAnswer, correct, points: q.points };
+    const response = await fetch(`/api/quizzes/${quizId}/attempt/${attemptId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        answers,
+        completed_at: new Date().toISOString(),
+      }),
     });
+    const payload = await response.json().catch(() => null);
+    if (!response.ok) return;
 
-    const score = total > 0 ? Math.round((earned / total) * 100) : 0;
-    const passed = score >= quiz.passing_score;
-
-    if (attemptId) {
-      await fetch(`/api/quizzes/${quizId}/attempt/${attemptId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          answers,
-          score,
-          passed,
-          completed_at: new Date().toISOString(),
-        }),
-      });
-    }
-
-    setResult({ score, passed, earned, total, gradedAnswers });
+    setLatestAttempt(payload?.result || null);
+    setResultAvailable(payload?.result_available !== false);
+    setResult(
+      payload?.pending
+        ? { pending: true, available_until: payload?.available_until || null }
+        : payload?.result || null
+    );
     setPhase("result");
   };
 
@@ -118,6 +112,14 @@ export default function QuizPage({ params }: PageProps) {
       <p className="text-red-500">Quiz not found</p>
     </div>
   );
+
+  const availableFrom = quiz?.available_from ? new Date(quiz.available_from) : null;
+  const availableUntil = quiz?.available_until ? new Date(quiz.available_until) : null;
+  const now = new Date();
+  const isNotOpen = availableFrom && now < availableFrom;
+  const isClosed = availableUntil && now > availableUntil;
+  const canStart = !isNotOpen && !isClosed;
+  const canRevealAnswers = !quiz.is_final && (!availableUntil || now > availableUntil);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -164,9 +166,29 @@ export default function QuizPage({ params }: PageProps) {
                 <p className="text-xs text-gray-500 mt-1">Time Limit</p>
               </div>
             </div>
+            {isNotOpen && (
+              <p className="text-sm text-amber-600 mb-4">Quiz opens at {availableFrom?.toLocaleString()}.</p>
+            )}
+            {isClosed && (
+              <p className="text-sm text-red-600 mb-4">Quiz closed at {availableUntil?.toLocaleString()}.</p>
+            )}
+            {startError && (
+              <p className="text-sm text-red-600 mb-4">{startError}</p>
+            )}
+            {quiz.is_final && latestAttempt?.completed_at && !resultAvailable && (
+              <p className="text-sm text-amber-600 mb-4">
+                Your submission has been recorded. Your grade will be visible after {availableUntil?.toLocaleString()}.
+              </p>
+            )}
+            {quiz.is_final && latestAttempt?.completed_at && resultAvailable && latestAttempt?.score !== undefined && latestAttempt?.score !== null && (
+              <p className="text-sm text-green-700 mb-4">
+                Latest grade: {latestAttempt.score}%.
+              </p>
+            )}
             <button
               onClick={startQuiz}
-              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-colors"
+              disabled={!canStart}
+              className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-xl transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Start Quiz
             </button>
@@ -266,47 +288,61 @@ export default function QuizPage({ params }: PageProps) {
         {/* RESULT */}
         {phase === "result" && result && (
           <div className="space-y-6">
-            {/* Score card */}
-            <div className={`rounded-2xl p-8 text-center ${result.passed ? "bg-green-50 border-2 border-green-200" : "bg-red-50 border-2 border-red-200"}`}>
-              {result.passed ? (
-                <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              ) : (
-                <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
-              )}
-              <h2 className="text-3xl font-bold text-gray-900 mb-1">{result.score}%</h2>
-              <p className={`text-lg font-semibold mb-2 ${result.passed ? "text-green-700" : "text-red-700"}`}>
-                {result.passed ? "Congratulations! You passed!" : "You did not pass this time"}
-              </p>
-              <p className="text-gray-500 text-sm">
-                {result.earned}/{result.total} points · Passing score: {quiz.passing_score}%
-              </p>
-            </div>
-
-            {/* Answer review */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-              <h3 className="font-semibold text-gray-900 mb-4">Answer Review</h3>
-              <div className="space-y-4">
-                {questions.map((q, i) => {
-                  const graded = result.gradedAnswers[q.id];
-                  return (
-                    <div key={q.id} className={`p-4 rounded-lg border ${graded?.correct ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
-                      <div className="flex items-start gap-2 mb-2">
-                        {graded?.correct ? <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />}
-                        <p className="text-sm font-medium text-gray-800">Q{i + 1}: {q.question_text}</p>
-                      </div>
-                      <div className="ml-6 space-y-1 text-xs">
-                        <p className={graded?.correct ? "text-green-700" : "text-red-700"}>
-                          Your answer: <span className="font-medium">{graded?.answer || "(no answer)"}</span>
-                        </p>
-                        {!graded?.correct && q.correct_answer && (
-                          <p className="text-gray-600">Correct: <span className="font-medium text-green-700">{q.correct_answer}</span></p>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+            {result.pending ? (
+              <div className="rounded-2xl p-8 text-center bg-amber-50 border-2 border-amber-200">
+                <Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">Submission Received</h2>
+                <p className="text-gray-600 text-sm">
+                  Your final test grade will be published after {availableUntil?.toLocaleString()}.
+                </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className={`rounded-2xl p-8 text-center ${result.passed ? "bg-green-50 border-2 border-green-200" : "bg-red-50 border-2 border-red-200"}`}>
+                  {result.passed ? (
+                    <Trophy className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+                  ) : (
+                    <XCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                  )}
+                  <h2 className="text-3xl font-bold text-gray-900 mb-1">{result.score}%</h2>
+                  <p className={`text-lg font-semibold mb-2 ${result.passed ? "text-green-700" : "text-red-700"}`}>
+                    {result.passed ? "Congratulations! You passed!" : "You did not pass this time"}
+                  </p>
+                  {!quiz.is_final && (
+                    <p className="text-gray-500 text-sm">
+                      {result.earned}/{result.total} points · Passing score: {quiz.passing_score}%
+                    </p>
+                  )}
+                </div>
+
+                {!quiz.is_final && result.gradedAnswers && (
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                    <h3 className="font-semibold text-gray-900 mb-4">Answer Review</h3>
+                    <div className="space-y-4">
+                      {questions.map((q, i) => {
+                        const graded = result.gradedAnswers[q.id];
+                        return (
+                          <div key={q.id} className={`p-4 rounded-lg border ${graded?.correct ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"}`}>
+                            <div className="flex items-start gap-2 mb-2">
+                              {graded?.correct ? <CheckCircle className="w-4 h-4 text-green-600 shrink-0 mt-0.5" /> : <XCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />}
+                              <p className="text-sm font-medium text-gray-800">Q{i + 1}: {q.question_text}</p>
+                            </div>
+                            <div className="ml-6 space-y-1 text-xs">
+                              <p className={graded?.correct ? "text-green-700" : "text-red-700"}>
+                                Your answer: <span className="font-medium">{graded?.answer || "(no answer)"}</span>
+                              </p>
+                              {canRevealAnswers && !graded?.correct && q.correct_answer && (
+                                <p className="text-gray-600">Correct: <span className="font-medium text-green-700">{q.correct_answer}</span></p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
 
             <div className="flex gap-3">
               <button

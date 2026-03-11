@@ -52,6 +52,8 @@ export default async function InstructorCoursesPage() {
                   <span>·</span>
                   <span>{course.enrollmentsCount ?? 0} learners</span>
                   <span>·</span>
+                  <span>{course.credit_hours ?? 0} credit hours</span>
+                  <span>·</span>
                   <span className="capitalize">{course.level}</span>
                 </div>
                 <div className="flex items-center gap-2">

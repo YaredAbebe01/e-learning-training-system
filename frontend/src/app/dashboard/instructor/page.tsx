@@ -1,5 +1,5 @@
 import { apiFetch, requireRole } from "@/lib/auth-helpers";
-import { BookOpen, Users, ClipboardList, TrendingUp, PlusCircle } from "lucide-react";
+import { BookOpen, Users, TrendingUp, PlusCircle } from "lucide-react";
 import Link from "next/link";
 
 export default async function InstructorDashboard() {
@@ -11,8 +11,7 @@ export default async function InstructorDashboard() {
   const courses = payload.courses || [];
   const enrollments = payload.enrollments || [];
   const totalEnrollments = payload.totalEnrollments ?? enrollments.length ?? 0;
-  const quizzesCount = payload.quizzesCount ?? 0;
-  const avgScore = payload.avgScore ?? 0;
+  const publishedCourses = courses.filter((course: any) => course.is_published).length;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -22,12 +21,11 @@ export default async function InstructorDashboard() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         {[
           { label: "My Courses", value: courses?.length ?? 0, icon: <BookOpen className="w-5 h-5" />, color: "bg-purple-600", link: "/dashboard/instructor/courses" },
           { label: "Total Learners", value: totalEnrollments, icon: <Users className="w-5 h-5" />, color: "bg-blue-600", link: "/dashboard/instructor/analytics" },
-          { label: "Quizzes", value: quizzesCount, icon: <ClipboardList className="w-5 h-5" />, color: "bg-green-600", link: "/dashboard/instructor/quizzes" },
-          { label: "Avg Quiz Score", value: `${avgScore}%`, icon: <TrendingUp className="w-5 h-5" />, color: "bg-orange-600", link: "/dashboard/instructor/analytics" },
+          { label: "Published Courses", value: publishedCourses, icon: <TrendingUp className="w-5 h-5" />, color: "bg-orange-600", link: "/dashboard/instructor/courses" },
         ].map((s) => (
           <Link key={s.label} href={s.link} className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">

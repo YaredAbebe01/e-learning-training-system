@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import BrandLogo from "@/components/BrandLogo";
+import DashboardProfileButton from "@/components/DashboardProfileButton";
 import {
   BookOpen,
   LayoutDashboard,
@@ -13,8 +15,8 @@ import {
   X,
   Award,
   PlusCircle,
-  ClipboardList,
   BookMarked,
+  ClipboardList,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -27,6 +29,9 @@ interface NavItem {
 interface SidebarProps {
   role: "admin" | "instructor" | "learner";
   userName: string;
+  userEmail: string;
+  userAvatarUrl: string | null;
+  userFullName: string;
 }
 
 const navItems: Record<string, NavItem[]> = {
@@ -40,7 +45,7 @@ const navItems: Record<string, NavItem[]> = {
     { label: "Dashboard", href: "/dashboard/instructor", icon: <LayoutDashboard className="w-5 h-5" /> },
     { label: "My Courses", href: "/dashboard/instructor/courses", icon: <BookOpen className="w-5 h-5" /> },
     { label: "Create Course", href: "/dashboard/instructor/courses/new", icon: <PlusCircle className="w-5 h-5" /> },
-    { label: "Quizzes", href: "/dashboard/instructor/quizzes", icon: <ClipboardList className="w-5 h-5" /> },
+    { label: "Submissions", href: "/dashboard/instructor/submissions", icon: <ClipboardList className="w-5 h-5" /> },
     { label: "Analytics", href: "/dashboard/instructor/analytics", icon: <BarChart3 className="w-5 h-5" /> },
   ],
   learner: [
@@ -64,14 +69,13 @@ const roleLabels: Record<string, string> = {
   learner: "Learner",
 };
 
-export default function Sidebar({ role, userName }: SidebarProps) {
+export default function Sidebar({ role, userName, userEmail, userAvatarUrl, userFullName }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = async () => {
-    await fetch(`${apiBase}/api/auth/logout`, {
+    await fetch("/api/auth/logout", {
       method: "POST",
       credentials: "include",
     });
@@ -82,35 +86,23 @@ export default function Sidebar({ role, userName }: SidebarProps) {
   const items = navItems[role] || [];
   const accentColor = roleColors[role];
 
-  const SidebarContent = () => (
+  const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex flex-col h-full">
-      <div className={`${accentColor} px-6 py-5`}>
-        <div className="flex items-center gap-3">
-          <div className="bg-white/20 rounded-xl p-2">
-            <BookOpen className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-white font-bold text-lg leading-tight">LearnHub</h1>
-            <span className="text-white/70 text-xs">{roleLabels[role]} Portal</span>
-          </div>
-        </div>
-      </div>
-
-      <div className="px-4 py-4 border-b border-gray-100">
-        <div className="flex items-center gap-3">
-          <div className={`${accentColor} w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm`}>
-            {userName.charAt(0).toUpperCase()}
-          </div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{userName}</p>
-            <span className={`text-xs font-medium px-2 py-0.5 rounded-full text-white ${accentColor}`}>
-              {roleLabels[role]}
-            </span>
+      {!isMobile && (
+        <div className={`${accentColor} px-6 py-5`}>
+          <div className="flex items-center gap-3">
+            <div className="rounded-xl bg-white px-2 py-2 shadow-sm">
+              <BrandLogo size={28} priority className="h-7 w-7 object-contain" />
+            </div>
+            <div>
+              <h1 className="text-white font-bold text-lg leading-tight">LearnHub</h1>
+              <span className="text-white/70 text-xs">{roleLabels[role]} Portal</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className={`flex-1 px-3 space-y-1 ${isMobile ? "py-4" : "py-4"}`}>
         {items.map((item) => {
           const isActive = pathname === item.href;
           return (
@@ -152,22 +144,28 @@ export default function Sidebar({ role, userName }: SidebarProps) {
 
       {/* Mobile header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className={`${accentColor} rounded-lg p-1.5`}>
-            <BookOpen className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex items-center gap-3">
+          <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-gray-100">
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+          <BrandLogo size={28} priority className="h-7 w-7 object-contain" />
           <span className="font-bold text-gray-900">LearnHub</span>
         </div>
-        <button onClick={() => setMobileOpen(!mobileOpen)} className="p-2 rounded-lg hover:bg-gray-100">
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        <DashboardProfileButton
+          initialUser={{
+            full_name: userFullName || userName,
+            email: userEmail,
+            avatar_url: userAvatarUrl,
+          }}
+          compact
+        />
       </div>
 
       {/* Mobile Sidebar */}
       {mobileOpen && (
         <div className="lg:hidden fixed inset-0 z-20 flex">
           <div className="w-64 bg-white h-full shadow-xl mt-14">
-            <SidebarContent />
+            <SidebarContent isMobile />
           </div>
           <div className="flex-1 bg-black/30" onClick={() => setMobileOpen(false)} />
         </div>

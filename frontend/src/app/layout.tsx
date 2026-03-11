@@ -15,6 +15,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "LearnHub - E-Learning & Corporate Training Platform",
   description: "A complete LMS platform for schools, companies, and training centers. Deliver engaging courses, track progress, and issue verifiable certificates.",
+  icons: {
+    icon: "/logo.png",
+    shortcut: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

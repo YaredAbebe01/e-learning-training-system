@@ -3,11 +3,11 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, Eye, EyeOff } from "lucide-react";
+import BrandLogo from "@/components/BrandLogo";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:4000";
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -21,7 +21,7 @@ export default function RegisterPage() {
     setLoading(true);
     setError("");
     try {
-      const response = await fetch(`${apiBase}/api/auth/register`, {
+      const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -52,8 +52,8 @@ export default function RegisterPage() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl mb-4">
-            <BookOpen className="w-8 h-8 text-white" />
+          <div className="mb-4 flex justify-center">
+            <BrandLogo size={64} priority className="h-16 w-16 object-contain" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900">LearnHub</h1>
           <p className="text-gray-500 mt-1">E-Learning & Corporate Training</p>
