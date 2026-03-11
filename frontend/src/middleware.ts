@@ -5,6 +5,10 @@ export default function middleware(request: NextRequest) {
   const publicRoutes = ["/", "/login", "/register"];
   const token = request.cookies.get("auth_token")?.value;
 
+  if (pathname.startsWith("/api")) {
+    return NextResponse.next();
+  }
+
   if (publicRoutes.includes(pathname)) {
     if (token && (pathname === "/login" || pathname === "/register")) {
       return NextResponse.redirect(new URL("/dashboard", request.url));
@@ -21,6 +25,6 @@ export default function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!api|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
