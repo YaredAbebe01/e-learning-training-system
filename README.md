@@ -18,6 +18,7 @@ Create backend/.env with:
 - PORT=4000
 - FRONTEND_URL=http://localhost:3000
 - CORS_ALLOWED_ORIGINS=http://localhost:3000
+- CORS_ALLOWED_ORIGIN_PATTERNS=*.vercel.app
 - COOKIE_SAME_SITE=lax
 - COOKIE_SECURE=false
 - CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>
@@ -62,6 +63,7 @@ Set these Render environment variables:
 - `JWT_SECRET=<a long random secret>`
 - `FRONTEND_URL=https://your-frontend-domain.vercel.app`
 - `CORS_ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app`
+- `CORS_ALLOWED_ORIGIN_PATTERNS=*.vercel.app`
 - `COOKIE_SAME_SITE=lax`
 - `COOKIE_SECURE=true`
 - `CLOUDINARY_URL=cloudinary://<api_key>:<api_secret>@<cloud_name>`

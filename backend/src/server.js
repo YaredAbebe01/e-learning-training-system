@@ -20,10 +20,35 @@ const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || process.env.FRONTEND
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
+const allowedOriginPatterns = (process.env.CORS_ALLOWED_ORIGIN_PATTERNS || "*.vercel.app")
+  .split(",")
+  .map((pattern) => pattern.trim())
+  .filter(Boolean);
+
+function hostnameMatchesPattern(hostname, pattern) {
+  if (!pattern) return false;
+  if (pattern.startsWith("*.")) {
+    const suffix = pattern.slice(1);
+    return hostname.endsWith(suffix);
+  }
+  return hostname === pattern;
+}
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+
+  try {
+    const { hostname } = new URL(origin);
+    return allowedOriginPatterns.some((pattern) => hostnameMatchesPattern(hostname, pattern));
+  } catch (_error) {
+    return false;
+  }
+}
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error("Not allowed by CORS"));
